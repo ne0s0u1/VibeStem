@@ -3,9 +3,9 @@ import { generateMusic, pollTaskUntilDone, type SunoGenerateParams, type SunoTas
 import { databases, storage, ID, Permission, Role, Query } from "../lib/appwrite";
 import { APPWRITE_CONFIG } from "../lib/config";
 import { useAuth } from "../contexts/AuthContext";
-import WaveformPlayer from "../components/WaveformPlayer";
+import { usePlayer } from "../contexts/PlayerContext";
 import type { GeneratedTrack } from "../types";
-import { Music, Loader, Info, Play, ChevronRight, Wand2, Sparkles, Radio, Trash2 } from "lucide-react";
+import { Music, Loader, Info, Play, Pause, ChevronRight, Wand2, Sparkles, Radio, Trash2, ChevronLeft } from "lucide-react";
 
 /** 使用 credentials:include 预取音频并返回 blob URL（解决 Appwrite 跨域 401） */
 async function fetchAudioBlobUrl(url: string): Promise<string> {
@@ -14,6 +14,8 @@ async function fetchAudioBlobUrl(url: string): Promise<string> {
   const blob = await res.blob();
   return URL.createObjectURL(blob);
 }
+
+const HISTORY_PAGE_SIZE = 6;
 
 const statusLabels: Record<SunoTaskStatus, string> = {
   PENDING: "排队中…",
@@ -30,6 +32,7 @@ const GENRE_TAGS = ["Hip Hop","Jazz","Reggae","Pop","R&B","EDM","Country","Folk"
 
 export default function GeneratePage() {
   const { user } = useAuth();
+  const { currentTrack, playing, playTrack } = usePlayer();
 
   const [prompt, setPrompt] = useState("");
   const [customMode, setCustomMode] = useState(false);
@@ -55,8 +58,8 @@ export default function GeneratePage() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const blobUrlsRef = useRef<string[]>([]);  // 追踪 blob URL 以便清理
 
-  // 单曲播放控制：记录当前正在播放的曲目 ID（跨 session + 历史）
-  const [playingId, setPlayingId] = useState<string | null>(null);
+  // 分页
+  const [historyPage, setHistoryPage] = useState(0);
 
   const promptMax = customMode ? (["V4"].includes(model) ? 3000 : 5000) : 500;
 
@@ -362,14 +365,14 @@ export default function GeneratePage() {
       {/* 右侧：统一列表（新生成在顶部 + 历史永远可见） */}
       <div className="w-1/2 flex flex-col min-w-0 bg-gray-50">
         <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-xl mx-auto space-y-6">
+          <div className="max-w-xl mx-auto space-y-6 pb-20">
 
             {/* 标题行 */}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-[17px] font-bold text-gray-900 tracking-tight flex items-center gap-2">
                   <Sparkles size={16} className="text-emerald-500" />
-                  我的音乐
+                  Workspace
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">
                   {loadingHistory ? "加载中…" : `共 ${savedTracks.length + results.length} 首`}
@@ -392,58 +395,52 @@ export default function GeneratePage() {
                 {results.length === 0 ? (
                   /* 骨架卡片 */
                   [0, 1].map(i => (
-                    <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col gap-4 shadow-sm animate-pulse">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-full bg-gray-200 shrink-0" />
+                    <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm animate-pulse">
+                        <div className="w-12 h-12 rounded-xl bg-gray-200 shrink-0" />
                         <div className="flex-1 space-y-2">
                           <div className="h-3.5 bg-gray-200 rounded-lg w-3/4" />
                           <div className="h-3 bg-gray-100 rounded-lg w-1/3" />
                         </div>
+                        <div className="w-9 h-9 rounded-full bg-gray-200 shrink-0" />
                       </div>
-                      <div className="h-9 bg-gray-100 rounded-xl" />
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-200" />
-                        <div className="h-3 bg-gray-100 rounded w-24" />
-                        <div className="ml-auto h-3 bg-gray-100 rounded w-20" />
-                      </div>
-                    </div>
                   ))
                 ) : (
                   /* 刚生成完的曲目（直接播放 kie.ai URL） */
                   results.map((track) => {
                     const pid = `result-${track.id}`;
+                    const isActive = currentTrack?.id === pid;
+                    const isPlaying = isActive && playing;
                     return (
-                      <div key={track.id} className="bg-white border border-emerald-100 hover:border-emerald-300 hover:shadow-md rounded-2xl p-4 flex flex-col gap-4 transition-all duration-300 shadow-sm">
-                        <div className="flex items-center gap-4">
-                          <DiscCover imageUrl={track.imageUrl} isPlaying={playingId === pid} size={56} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-gray-900 font-semibold text-sm truncate">{track.title || "未命名曲目"}</h3>
-                              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md shrink-0">NEW</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {track.duration != null && (
-                                <span className="flex items-center gap-1 text-xs text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-md font-mono">
-                                  <Play size={9} className="text-gray-300" />
-                                  {`${Math.floor(track.duration / 60)}:${String(Math.floor(track.duration % 60)).padStart(2, "0")}`}
-                                </span>
-                              )}
-                              {track.tags?.split(",").slice(0, 3).map(tag => (
-                                <span key={tag} className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md">
-                                  {tag.trim()}
-                                </span>
-                              ))}
-                            </div>
+                      <div key={track.id} className="bg-white border border-emerald-100 hover:border-emerald-300 hover:shadow-md rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 shadow-sm">
+                        <TrackCover imageUrl={track.imageUrl} isPlaying={isPlaying} size={48} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-gray-900 font-semibold text-sm truncate">{track.title || "未命名曲目"}</h3>
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md shrink-0">NEW</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {track.duration != null && (
+                              <span className="text-xs text-gray-400 font-mono">
+                                {`${Math.floor(track.duration / 60)}:${String(Math.floor(track.duration % 60)).padStart(2, "0")}`}
+                              </span>
+                            )}
+                            {track.tags?.split(",").slice(0, 2).map(tag => (
+                              <span key={tag} className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md">
+                                {tag.trim()}
+                              </span>
+                            ))}
                           </div>
                         </div>
-                        <div className="bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
-                          <WaveformPlayer
-                            url={track.audioUrl}
-                            height={36}
-                            shouldPause={playingId !== null && playingId !== pid}
-                            onPlay={() => setPlayingId(pid)}
-                          />
-                        </div>
+                        <button
+                          onClick={() => playTrack({ id: pid, url: track.audioUrl, title: track.title || "未命名曲目", subtitle: track.tags?.split(",")[0]?.trim(), color: '#10b981', imageUrl: track.imageUrl })}
+                          className="w-9 h-9 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center shrink-0 transition-all hover:scale-105 active:scale-95 shadow-sm shadow-emerald-500/20"
+                          aria-label={isPlaying ? "暂停" : "播放"}
+                        >
+                          {isPlaying
+                            ? <Pause size={15} className="text-white" fill="white" />
+                            : <Play size={15} className="text-white" fill="white" style={{ marginLeft: 1 }} />
+                          }
+                        </button>
                       </div>
                     );
                   })
@@ -459,59 +456,104 @@ export default function GeneratePage() {
               </div>
             ) : savedTracks.length > 0 ? (
               <div className="space-y-3">
-                {(generating || results.length > 0) && savedTracks.length > 0 && (
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest pt-2">历史记录</p>
-                )}
-                {savedTracks.map((track) => {
+                {/* Section header */}
+                <div className="flex items-center justify-between">
+                  {(generating || results.length > 0) && (
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">历史记录</p>
+                  )}
+                  {/* Pagination controls */}
+                  {Math.ceil(savedTracks.length / HISTORY_PAGE_SIZE) > 1 && (
+                    <div className="flex items-center gap-2 ml-auto text-xs text-gray-400">
+                      <span className="tabular-nums">{historyPage + 1} / {Math.ceil(savedTracks.length / HISTORY_PAGE_SIZE)}</span>
+                      <button
+                        disabled={historyPage === 0}
+                        onClick={() => setHistoryPage(p => p - 1)}
+                        className="p-1 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        aria-label="上一页"
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+                      <button
+                        disabled={historyPage >= Math.ceil(savedTracks.length / HISTORY_PAGE_SIZE) - 1}
+                        onClick={() => setHistoryPage(p => p + 1)}
+                        className="p-1 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        aria-label="下一页"
+                      >
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {savedTracks.slice(historyPage * HISTORY_PAGE_SIZE, (historyPage + 1) * HISTORY_PAGE_SIZE).map((track) => {
                   const blobUrl = savedUrls[track.$id];
                   const pid = `saved-${track.$id}`;
+                  const isActive = currentTrack?.id === pid;
+                  const isPlaying = isActive && playing;
                   return (
-                    <div key={track.$id} className="bg-white border border-gray-100 hover:border-emerald-200 hover:shadow-md rounded-2xl p-4 flex flex-col gap-4 transition-all duration-300 shadow-sm group">
-                      <div className="flex items-center gap-4">
-                        <DiscCover imageUrl={track.imageUrl} isPlaying={playingId === pid} size={56} />
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-gray-900 font-semibold text-sm mb-1 truncate">{track.title || "未命名曲目"}</h3>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {track.tags?.slice(0, 2).map(tag => (
-                              <span key={tag} className="text-xs text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-md">
-                                {tag.trim()}
-                              </span>
-                            ))}
-                            <span className="text-xs text-gray-400">
-                              {track.duration ? `${Math.floor(track.duration / 60)}:${String(Math.floor(track.duration % 60)).padStart(2, "0")} · ` : ""}
-                              {new Date(track.$createdAt).toLocaleDateString("zh-CN")}
+                    <div key={track.$id} className={`bg-white border rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 shadow-sm group ${isActive ? 'border-emerald-200 ring-1 ring-emerald-100' : 'border-gray-100 hover:border-emerald-200 hover:shadow-md'}`}>
+                      <TrackCover imageUrl={track.imageUrl} isPlaying={isPlaying} size={48} />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-gray-900 font-semibold text-sm mb-1 truncate">{track.title || "未命名曲目"}</h3>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {track.tags?.slice(0, 2).map(tag => (
+                            <span key={tag} className="text-xs text-gray-400 bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded-md">
+                              {tag.trim()}
                             </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {blobUrl && (
-                            <a href={blobUrl} download={`${track.title || "track"}.mp3`} className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all" aria-label="下载">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                            </a>
-                          )}
-                          <button onClick={() => deleteSavedTrack(track)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" aria-label="删除">
-                            <Trash2 size={14} />
-                          </button>
+                          ))}
+                          <span className="text-xs text-gray-400">
+                            {track.duration ? `${Math.floor(track.duration / 60)}:${String(Math.floor(track.duration % 60)).padStart(2, "0")} · ` : ""}
+                            {new Date(track.$createdAt).toLocaleDateString("zh-CN")}
+                          </span>
                         </div>
                       </div>
-                      {blobUrl ? (
-                        <div className="bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
-                          <WaveformPlayer
-                            url={blobUrl}
-                            height={36}
-                            color="#10b981"
-                            shouldPause={playingId !== null && playingId !== pid}
-                            onPlay={() => setPlayingId(pid)}
-                          />
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* Action buttons: visible on hover or when active */}
+                        <div className={`flex items-center gap-1 transition-opacity ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                          {blobUrl && (
+                            <a href={blobUrl} download={`${track.title || "track"}.mp3`}
+                              className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all" aria-label="下载">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            </a>
+                          )}
+                          <button onClick={() => deleteSavedTrack(track)}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" aria-label="删除">
+                            <Trash2 size={13} />
+                          </button>
                         </div>
-                      ) : (
-                        <div className="h-10 bg-gray-50 rounded-xl flex items-center justify-center border border-gray-100">
-                          <p className="text-xs text-gray-400">音频加载中…</p>
-                        </div>
-                      )}
+                        {/* Play button */}
+                        <button
+                          disabled={!blobUrl}
+                          onClick={() => blobUrl && playTrack({ id: pid, url: blobUrl, title: track.title || "未命名曲目", subtitle: track.tags?.[0]?.trim(), color: '#10b981', imageUrl: track.imageUrl })}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 ${
+                            blobUrl
+                              ? isActive
+                                ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20'
+                                : 'bg-gray-100 hover:bg-emerald-500 group-hover:bg-emerald-500'
+                              : 'bg-gray-100 opacity-40 cursor-not-allowed'
+                          }`}
+                          aria-label={isPlaying ? "暂停" : "播放"}
+                        >
+                          {isPlaying
+                            ? <Pause size={14} className={isActive ? "text-white" : "text-gray-500 group-hover:text-white"} fill="currentColor" />
+                            : <Play size={14} className={isActive ? "text-white" : "text-gray-500 group-hover:text-white"} fill="currentColor" style={{ marginLeft: 1 }} />
+                          }
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
+
+                {/* Page dots */}
+                {Math.ceil(savedTracks.length / HISTORY_PAGE_SIZE) > 1 && (
+                  <div className="flex justify-center gap-1.5 pt-1">
+                    {Array.from({ length: Math.ceil(savedTracks.length / HISTORY_PAGE_SIZE) }).map((_, i) => (
+                      <button key={i} onClick={() => setHistoryPage(i)}
+                        className={`rounded-full transition-all duration-200 ${i === historyPage ? 'w-4 h-1.5 bg-emerald-500' : 'w-1.5 h-1.5 bg-gray-200 hover:bg-gray-300'}`}
+                        aria-label={`第 ${i + 1} 页`} />
+                    ))}
+                  </div>
+                )}
               </div>
             ) : !generating && results.length === 0 ? (
               /* 空状态 Showcase */
@@ -530,34 +572,29 @@ export default function GeneratePage() {
   );
 }
 
-/** 黑胶唱片封面：有图片就显示图，否则显示渐变占位 */
-function DiscCover({ imageUrl, isPlaying, size = 56 }: { imageUrl?: string; isPlaying: boolean; size?: number }) {
+/** 圆角方形封面：播放时模糊+均衡器 overlay */
+function TrackCover({ imageUrl, isPlaying, size = 48 }: { imageUrl?: string; isPlaying: boolean; size?: number }) {
   return (
-    <div
-      className="relative shrink-0 rounded-full overflow-hidden"
-      style={{ width: size, height: size }}
-    >
-      {/* 旋转动画：播放中才转 */}
-      <div
-        className={`absolute inset-0 rounded-full transition-all ${isPlaying ? "animate-[spin_4s_linear_infinite]" : ""}`}
-      >
-        {imageUrl ? (
-          <img src={imageUrl} alt="封面" className="w-full h-full object-cover rounded-full" />
-        ) : (
-          <div className="w-full h-full bg-gray-900 rounded-full flex items-center justify-center">
-            <div className="absolute inset-[3px] border border-white/10 rounded-full" />
-            <div className="absolute inset-[7px] border border-white/10 rounded-full" />
-            <div className="absolute inset-[11px] border border-white/10 rounded-full" />
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center z-10">
-              <div className="w-1.5 h-1.5 bg-white rounded-full" />
-            </div>
+    <div className="relative shrink-0 rounded-xl overflow-hidden" style={{ width: size, height: size }}>
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt="封面"
+          className={`w-full h-full object-cover transition-all duration-300 ${isPlaying ? 'scale-110 brightness-50' : ''}`}
+        />
+      ) : (
+        <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+          <Music size={Math.round(size * 0.35)} className="text-gray-600" />
+        </div>
+      )}
+      {/* Playing indicator overlay */}
+      {isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex items-end gap-[3px]" style={{ height: 18 }}>
+            <div className="eq-bar w-[3px] bg-emerald-400 rounded-full" style={{ height: '100%' }} />
+            <div className="eq-bar w-[3px] bg-emerald-400 rounded-full" style={{ height: '100%' }} />
+            <div className="eq-bar w-[3px] bg-emerald-400 rounded-full" style={{ height: '100%' }} />
           </div>
-        )}
-      </div>
-      {/* 中心孔（有图片时展示） */}
-      {imageUrl && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-4 h-4 rounded-full bg-black/60 border-2 border-white/20" />
         </div>
       )}
     </div>

@@ -1,7 +1,10 @@
 ﻿import { Link } from 'react-router-dom';
-import { Music, Scissors, Sparkles, GitCompare, ArrowRight, CheckCircle } from 'lucide-react';
+import { Music, Scissors, Sparkles, GitCompare, ArrowRight, CheckCircle, LayoutDashboard } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function LandingPage() {
+  const { user, loading } = useAuth();
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
       {/* Nav */}
@@ -14,18 +17,37 @@ export default function LandingPage() {
             <span className="text-xl font-bold">VibeStem</span>
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors"
-            >
-              登录
-            </Link>
-            <Link
-              to="/register"
-              className="px-5 py-2 text-sm font-semibold bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all duration-200"
-            >
-              免费注册
-            </Link>
+            {!loading && (
+              user ? (
+                <>
+                  <span className="text-sm text-gray-500 hidden sm:block">
+                    你好，<span className="font-semibold text-gray-800">{user.name}</span>
+                  </span>
+                  <Link
+                    to="/app"
+                    className="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all duration-200"
+                  >
+                    <LayoutDashboard size={15} />
+                    进入工作台
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    登录
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="px-5 py-2 text-sm font-semibold bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all duration-200"
+                  >
+                    免费注册
+                  </Link>
+                </>
+              )
+            )}
           </div>
         </div>
       </header>
@@ -52,19 +74,31 @@ export default function LandingPage() {
             一键分离人声与伴奏，结合 Suno AI 音乐生成与双模型对比，为音乐创作赋能。
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2.5 px-8 py-4 bg-gray-900 text-white font-semibold rounded-2xl hover:bg-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-            >
-              开始使用
-              <ArrowRight size={18} />
-            </Link>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-2.5 px-8 py-4 bg-white text-gray-900 font-semibold rounded-2xl border border-gray-200 hover:border-gray-300 transition-all duration-300"
-            >
-              已有账号，直接登录
-            </Link>
+            {user ? (
+              <Link
+                to="/app"
+                className="inline-flex items-center gap-2.5 px-8 py-4 bg-gray-900 text-white font-semibold rounded-2xl hover:bg-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+              >
+                进入工作台
+                <ArrowRight size={18} />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center gap-2.5 px-8 py-4 bg-gray-900 text-white font-semibold rounded-2xl hover:bg-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                >
+                  开始使用
+                  <ArrowRight size={18} />
+                </Link>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2.5 px-8 py-4 bg-white text-gray-900 font-semibold rounded-2xl border border-gray-200 hover:border-gray-300 transition-all duration-300"
+                >
+                  已有账号，直接登录
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>

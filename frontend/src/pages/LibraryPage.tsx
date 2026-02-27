@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { databases, storage, Query } from '../lib/appwrite';
 import { APPWRITE_CONFIG } from '../lib/config';
 import { useAuth } from '../contexts/AuthContext';
-import WaveformPlayer from '../components/WaveformPlayer';
+import { usePlayer } from '../contexts/PlayerContext';
 import type { Track, GeneratedTrack } from '../types';
 import {
   Music,
@@ -16,56 +16,60 @@ import {
   ChevronUp,
   Loader,
   Sparkles,
+  Play,
+  Pause,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+
+const ITEMS_PER_PAGE = 4;
 
 export default function LibraryPage() {
   const { user } = useAuth();
+  const { currentTrack, playing, playTrack } = usePlayer();
+
   const [tracks, setTracks] = useState<Track[]>([]);
   const [generatedTracks, setGeneratedTracks] = useState<GeneratedTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [stemUrls, setStemUrls] = useState<Record<string, Record<string, string>>>({})
+  const [stemUrls, setStemUrls] = useState<Record<string, Record<string, string>>>({});
   const [generatedUrls, setGeneratedUrls] = useState<Record<string, string>>({});
   const [loadingStems, setLoadingStems] = useState<string | null>(null);
 
+  // Pagination
+  const [genPage, setGenPage] = useState(0);
+  const [stemPage, setStemPage] = useState(0);
+
   useEffect(() => {
     fetchTracks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchTracks() {
     setLoading(true);
     try {
-      console.log('[library] 查询 tracks, ownerId:', user!.$id);
-      console.log('[library] databaseId:', APPWRITE_CONFIG.databaseId, 'collectionId:', APPWRITE_CONFIG.tracksCollectionId);
       const res = await databases.listDocuments(
         APPWRITE_CONFIG.databaseId,
         APPWRITE_CONFIG.tracksCollectionId,
         [Query.equal('ownerId', user!.$id), Query.orderDesc('$createdAt')]
       );
-      console.log('[library] 查询结果 total:', res.total, '文档数:', res.documents.length);
-      console.log('[library] 原始文档:', res.documents);
       const all = res.documents as unknown as (Track & GeneratedTrack)[];
-      // 过滤掉软删除的记录
-      const active = all.filter(d => !d.isDeleted);
-      const stem = active.filter(d => (d as unknown as {source?: string}).source !== 'generated') as Track[];
-      const gen = active.filter(d => (d as unknown as {source?: string}).source === 'generated') as unknown as GeneratedTrack[];
-      console.log('[library] 分轨曲目:', stem.length, '生成曲目:', gen.length);
+      const active = all.filter((d) => !d.isDeleted);
+      const stem = active.filter(
+        (d) => (d as unknown as { source?: string }).source !== 'generated'
+      ) as Track[];
+      const gen = active.filter(
+        (d) => (d as unknown as { source?: string }).source === 'generated'
+      ) as unknown as GeneratedTrack[];
       setTracks(stem);
       setGeneratedTracks(gen);
-      // 预取所有生成曲目的播放 URL
+      // Pre-fetch URLs for generated tracks
       const urls: Record<string, string> = {};
       for (const t of gen) {
-        if (!t.bucketId || t.bucketId === '__suno__') {
-          console.warn(`[library] 跳过无效 bucket 的生成曲目: ${t.$id} (bucketId: ${t.bucketId})`);
-          continue;
-        }
+        if (!t.bucketId || t.bucketId === '__suno__') continue;
         try {
-          const url = storage.getFileView(t.bucketId, t.fileId).toString();
-          console.log(`[library] 生成曲目 URL: ${t.$id} → ${url}`);
-          urls[t.$id] = url;
-        } catch (e) {
-          console.error('[library] 获取生成曲目 URL 失败:', t.$id, e);
-        }
+          urls[t.$id] = storage.getFileView(t.bucketId, t.fileId).toString();
+        } catch { /* skip */ }
       }
       setGeneratedUrls(urls);
     } catch (e) {
@@ -142,9 +146,19 @@ export default function LibraryPage() {
     { key: 'other', label: '其他', icon: Radio, color: '#06b6d4' },
   ];
 
+  // ─── Pagination helpers ───────────────────────────────────────────────
+  const genTotalPages = Math.ceil(generatedTracks.length / ITEMS_PER_PAGE);
+  const stemTotalPages = Math.ceil(tracks.length / ITEMS_PER_PAGE);
+  const pagedGen = generatedTracks.slice(genPage * ITEMS_PER_PAGE, (genPage + 1) * ITEMS_PER_PAGE);
+  const pagedStem = tracks.slice(stemPage * ITEMS_PER_PAGE, (stemPage + 1) * ITEMS_PER_PAGE);
+
+  function isActivePlaying(id: string) {
+    return currentTrack?.id === id && playing;
+  }
+
   return (
     <div className="flex-1 overflow-y-auto bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto space-y-8 pb-12">
+      <div className="max-w-4xl mx-auto space-y-8 pb-24">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">音乐库</h1>
           <p className="text-gray-500 text-sm mt-1">浏览并播放你的所有分轨结果</p>
@@ -166,130 +180,210 @@ export default function LibraryPage() {
         ) : (
           <div className="space-y-8">
 
-            {/* AI 生成曲目 */}
+            {/* ─── AI 生成曲目 ────────────────────────────────────────── */}
             {generatedTracks.length > 0 && (
               <div className="space-y-4">
-                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <Sparkles size={18} className="text-emerald-500" />
-                  AI 生成曲目
-                </h2>
-                {generatedTracks.map((track) => {
+                {/* Section header + pagination controls */}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <Sparkles size={18} className="text-emerald-500" />
+                    AI 生成曲目
+                    <span className="text-sm font-normal text-gray-400">({generatedTracks.length})</span>
+                  </h2>
+                  {genTotalPages > 1 && (
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <span className="tabular-nums">{genPage + 1} / {genTotalPages}</span>
+                      <button disabled={genPage === 0} onClick={() => setGenPage((p) => p - 1)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" aria-label="上一页">
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button disabled={genPage >= genTotalPages - 1} onClick={() => setGenPage((p) => p + 1)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" aria-label="下一页">
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {pagedGen.map((track) => {
                   const audioUrl = generatedUrls[track.$id];
+                  const active = isActivePlaying(track.$id);
                   return (
-                    <div key={track.$id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                      <div className="p-5">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
-                              <Music size={20} className="text-emerald-500" />
-                            </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-gray-900 truncate">{track.title}</p>
-                            <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-2">
-                              AI 生成
-                              {track.duration && (
-                                <><span className="text-gray-200">·</span>{Math.floor(track.duration / 60)}:{String(Math.floor(track.duration % 60)).padStart(2, '0')}</>
-                              )}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {audioUrl && (
-                              <a href={audioUrl} download={`${track.title}.mp3`} className="p-2.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all rounded-xl" aria-label="下载">
-                                <Download size={16} />
-                              </a>
+                    <div key={track.$id}
+                      className={`bg-white rounded-3xl border shadow-sm overflow-hidden transition-all duration-200 ${
+                        currentTrack?.id === track.$id ? 'border-emerald-200 ring-1 ring-emerald-200/60' : 'border-gray-100'
+                      }`}
+                    >
+                      <div className="p-5 flex items-center gap-4">
+                        {/* Play button replaces old cover */}
+                        <button
+                          disabled={!audioUrl}
+                          onClick={() => audioUrl && playTrack({ id: track.$id, url: audioUrl, title: track.title, subtitle: 'AI 生成', color: '#10b981' })}
+                          className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                            audioUrl ? 'bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 hover:scale-105 active:scale-95' : 'bg-gray-50 border border-gray-100 cursor-not-allowed opacity-40'
+                          }`}
+                          aria-label={active ? '暂停' : '播放'}
+                        >
+                          {active
+                            ? <Pause size={18} className="text-emerald-600" fill="currentColor" />
+                            : <Play size={18} className="text-emerald-500" fill="currentColor" style={{ marginLeft: 2 }} />
+                          }
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-gray-900 truncate">{track.title}</p>
+                          <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-2">
+                            AI 生成
+                            {track.duration && (
+                              <><span className="text-gray-200">·</span>{Math.floor(track.duration / 60)}:{String(Math.floor(track.duration % 60)).padStart(2, '0')}</>
                             )}
-                            <button onClick={() => deleteGeneratedTrack(track)} className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all rounded-xl" aria-label="删除">
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
+                          </p>
                         </div>
-                        {audioUrl ? (
-                          <WaveformPlayer url={audioUrl} color="#10b981" height={56} />
-                        ) : (
-                          <div className="h-14 bg-gray-50 rounded-xl flex items-center justify-center">
-                            <p className="text-xs text-gray-400">音频加载失败</p>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {audioUrl && (
+                            <a href={audioUrl} download={`${track.title}.mp3`}
+                              className="p-2.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all rounded-xl" aria-label="下载">
+                              <Download size={16} />
+                            </a>
+                          )}
+                          <button onClick={() => deleteGeneratedTrack(track)}
+                            className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all rounded-xl" aria-label="删除">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
                 })}
-              </div>
-            )}
 
-            {/* 分轨曲目 */}
-            {tracks.length > 0 && (
-              <div className="space-y-4">
-                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <Music size={18} className="text-blue-500" />
-                  分轨曲目
-                </h2>
-                {tracks.map((track) => (
-              <div key={track.$id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300">
-                <div className="p-5 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                    <Music size={20} className="text-blue-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 truncate">{track.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
-                      {track.model === 'finetuned' ? 'EDM 微调模型' : '官方模型'}
-                      <span className="text-gray-300">·</span>
-                      {new Date(track.createdAt).toLocaleDateString('zh-CN')}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => deleteTrack(track)}
-                      className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200 rounded-xl"
-                      aria-label="删除"
-                      title="删除"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => toggleExpand(track)}
-                      className="p-2.5 text-gray-600 hover:bg-gray-100 transition-all duration-200 rounded-xl"
-                      aria-label={expanded === track.$id ? '收起' : '展开'}
-                    >
-                      {expanded === track.$id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                    </button>
-                  </div>
-                </div>
-
-                {expanded === track.$id && (
-                  <div className="px-5 pb-6 border-t border-gray-100 pt-4">
-                    {loadingStems === track.$id ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader size={24} className="animate-spin text-blue-400" />
-                      </div>
-                    ) : (
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        {stemConfig.map(({ key, label, icon: Icon, color }) => {
-                          const url = stemUrls[track.$id]?.[key];
-                          if (!url) return null;
-                          return (
-                            <div key={key} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: color + '20', color }}>
-                                    <Icon size={15} />
-                                  </div>
-                                  <span className="text-sm font-bold text-gray-700">{label}</span>
-                                </div>
-                                <a href={url} download className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-white rounded-lg border border-transparent hover:border-gray-200 transition-all">
-                                  <Download size={14} />
-                                </a>
-                              </div>
-                              <WaveformPlayer url={url} color={color} height={48} />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                {/* Page dots */}
+                {genTotalPages > 1 && (
+                  <div className="flex justify-center gap-1.5 pt-1">
+                    {Array.from({ length: genTotalPages }).map((_, i) => (
+                      <button key={i} onClick={() => setGenPage(i)}
+                        className={`rounded-full transition-all duration-200 ${i === genPage ? 'w-5 h-2 bg-emerald-500' : 'w-2 h-2 bg-gray-200 hover:bg-gray-300'}`}
+                        aria-label={`第 ${i + 1} 页`} />
+                    ))}
                   </div>
                 )}
               </div>
-            ))}
+            )}
+
+            {/* ─── 分轨曲目 ────────────────────────────────────────────── */}
+            {tracks.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <Music size={18} className="text-blue-500" />
+                    分轨曲目
+                    <span className="text-sm font-normal text-gray-400">({tracks.length})</span>
+                  </h2>
+                  {stemTotalPages > 1 && (
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <span className="tabular-nums">{stemPage + 1} / {stemTotalPages}</span>
+                      <button disabled={stemPage === 0} onClick={() => setStemPage((p) => p - 1)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" aria-label="上一页">
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button disabled={stemPage >= stemTotalPages - 1} onClick={() => setStemPage((p) => p + 1)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" aria-label="下一页">
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {pagedStem.map((track) => (
+                  <div key={track.$id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300">
+                    <div className="p-5 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                        <Music size={20} className="text-blue-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-gray-900 truncate">{track.name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
+                          {track.model === 'finetuned' ? 'EDM 微调模型' : '官方模型'}
+                          <span className="text-gray-300">·</span>
+                          {new Date(track.createdAt).toLocaleDateString('zh-CN')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => deleteTrack(track)}
+                          className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200 rounded-xl" aria-label="删除">
+                          <Trash2 size={16} />
+                        </button>
+                        <button onClick={() => toggleExpand(track)}
+                          className="p-2.5 text-gray-600 hover:bg-gray-100 transition-all duration-200 rounded-xl"
+                          aria-label={expanded === track.$id ? '收起' : '展开分轨'}>
+                          {expanded === track.$id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {expanded === track.$id && (
+                      <div className="px-5 pb-6 border-t border-gray-100 pt-4">
+                        {loadingStems === track.$id ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader size={24} className="animate-spin text-blue-400" />
+                          </div>
+                        ) : (
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            {stemConfig.map(({ key, label, icon: Icon, color }) => {
+                              const url = stemUrls[track.$id]?.[key];
+                              if (!url) return null;
+                              const stemId = `${track.$id}__${key}`;
+                              const stemActive = isActivePlaying(stemId);
+                              return (
+                                <div key={key}
+                                  className={`rounded-2xl p-4 border transition-all ${
+                                    currentTrack?.id === stemId ? 'bg-white' : 'bg-gray-50 border-gray-100'
+                                  }`}
+                                  style={currentTrack?.id === stemId ? { borderColor: color + '80' } : undefined}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={() => playTrack({ id: stemId, url, title: `${track.name} — ${label}`, subtitle: label, color })}
+                                        className="w-9 h-9 rounded-xl flex items-center justify-center hover:scale-105 transition-all active:scale-95"
+                                        style={{ backgroundColor: color + '20', color }}
+                                        aria-label={stemActive ? '暂停' : `播放${label}`}
+                                      >
+                                        {stemActive
+                                          ? <Pause size={15} fill="currentColor" />
+                                          : <Play size={15} fill="currentColor" style={{ marginLeft: 1 }} />
+                                        }
+                                      </button>
+                                      <div className="flex items-center gap-1.5">
+                                        <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: color + '15', color }}>
+                                          <Icon size={12} />
+                                        </div>
+                                        <span className="text-sm font-bold text-gray-700">{label}</span>
+                                      </div>
+                                    </div>
+                                    <a href={url} download
+                                      className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-white rounded-lg border border-transparent hover:border-gray-200 transition-all">
+                                      <Download size={14} />
+                                    </a>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Page dots */}
+                {stemTotalPages > 1 && (
+                  <div className="flex justify-center gap-1.5 pt-1">
+                    {Array.from({ length: stemTotalPages }).map((_, i) => (
+                      <button key={i} onClick={() => setStemPage(i)}
+                        className={`rounded-full transition-all duration-200 ${i === stemPage ? 'w-5 h-2 bg-blue-500' : 'w-2 h-2 bg-gray-200 hover:bg-gray-300'}`}
+                        aria-label={`第 ${i + 1} 页`} />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

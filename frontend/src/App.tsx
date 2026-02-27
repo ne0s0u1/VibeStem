@@ -7,9 +7,9 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import GeneratePage from './pages/GeneratePage';
 import SeparatePage from './pages/SeparatePage';
-import LibraryPage from './pages/LibraryPage';
 import ComparePage from './pages/ComparePage';
 import HistoryPage from './pages/HistoryPage';
+import AudioToolsPage from './pages/AudioToolsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -39,11 +39,11 @@ export default function App() {
         }
       >
         <Route index element={<DashboardPage />} />
-        <Route path="library" element={<LibraryPage />} />
         <Route path="generate" element={<GeneratePage />} />
         <Route path="separate" element={<SeparatePage />} />
         <Route path="compare" element={<ComparePage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="tools" element={<AudioToolsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -9,12 +9,14 @@ import {
   LogOut,
   LayoutDashboard,
   ChevronLeft,
+  Wand2,
 } from 'lucide-react';
 
 const navItems = [
   { to: '/app', icon: LayoutDashboard, label: '工作台', color: 'emerald' },
   { to: '/app/generate', icon: Sparkles, label: 'AI 生成', color: 'teal' },
   { to: '/app/separate', icon: Scissors, label: '智能分轨', color: 'rose' },
+  { to: '/app/tools', icon: Wand2, label: '音频工具', color: 'sky' },
   { to: '/app/compare', icon: GitCompare, label: '模型对比', color: 'violet' },
   { to: '/app/history', icon: History, label: '任务历史', color: 'amber' },
 ];
@@ -47,7 +49,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-2 space-y-2 overflow-y-auto" aria-label="主导航菜单">
-        {navItems.map(({ to, icon: Icon, label, color }) => (
+        {navItems.map(({ to, icon: Icon, label, color: _color }) => (
           <NavLink
             key={to}
             to={to}
