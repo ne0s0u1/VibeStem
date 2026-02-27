@@ -1,0 +1,10 @@
+fastapi>=0.115.0
+uvicorn>=0.34.0
+torch>=2.0.0
+torchaudio>=2.0.0
+numpy>=1.24.0
+httpx>=0.28.0
+python-multipart>=0.0.18
+# ZFTurbo 仓库的依赖（请确保已安装该仓库的 requirements.txt）
+# git clone https://github.com/ZFTurbo/Music-Source-Separation-Training
+# pip install -r Music-Source-Separation-Training/requirements.txt

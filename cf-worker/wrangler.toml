@@ -1,0 +1,10 @@
+name = "stemvibe-api-proxy"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+# SUNO_API_KEY 通过 wrangler secret put SUNO_API_KEY 设置
+
+[[kv_namespaces]]
+binding = "TASK_STORE"
+id = "cc62c9bf181d409386e618b44718d697"

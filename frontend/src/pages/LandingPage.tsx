@@ -1,0 +1,168 @@
+﻿import { Link } from 'react-router-dom';
+import { Music, Scissors, Sparkles, GitCompare, ArrowRight, CheckCircle } from 'lucide-react';
+
+export default function LandingPage() {
+  return (
+    <div className="min-h-screen bg-white text-gray-900">
+      {/* Nav */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/20">
+              <Music size={16} className="text-white" />
+            </div>
+            <span className="text-xl font-bold">VibeStem</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/login"
+              className="px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors"
+            >
+              登录
+            </Link>
+            <Link
+              to="/register"
+              className="px-5 py-2 text-sm font-semibold bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all duration-200"
+            >
+              免费注册
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden py-28 px-6">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-100 rounded-full mix-blend-multiply blur-3xl opacity-60 animate-pulse" />
+          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply blur-3xl opacity-60 animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+        <div className="relative max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-full text-sm font-semibold text-emerald-700 mb-8">
+            <Sparkles size={14} />
+            基于 HTDemucs V4 深度学习
+          </div>
+          <h1 className="text-6xl font-extrabold tracking-tight text-gray-900 leading-tight mb-6">
+            AI 音乐智能分轨
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">
+              专业级音源分离
+            </span>
+          </h1>
+          <p className="text-xl text-gray-500 mb-12 max-w-2xl mx-auto leading-relaxed">
+            一键分离人声与伴奏，结合 Suno AI 音乐生成与双模型对比，为音乐创作赋能。
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-2.5 px-8 py-4 bg-gray-900 text-white font-semibold rounded-2xl hover:bg-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+            >
+              开始使用
+              <ArrowRight size={18} />
+            </Link>
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2.5 px-8 py-4 bg-white text-gray-900 font-semibold rounded-2xl border border-gray-200 hover:border-gray-300 transition-all duration-300"
+            >
+              已有账号，直接登录
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-24 px-6 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">强大的核心功能</h2>
+            <p className="text-gray-500 text-lg">专业音频工具链，一站式音乐处理</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                icon: Scissors,
+                color: 'rose',
+                title: '智能分轨',
+                desc: 'HTDemucs V4 深度神经网络，分离人声、鼓、贝斯、其他',
+              },
+              {
+                icon: Sparkles,
+                color: 'emerald',
+                title: 'AI 生成',
+                desc: 'Suno V4/V5 模型，文字生成完整音乐作品',
+              },
+              {
+                icon: GitCompare,
+                color: 'violet',
+                title: '双模型对比',
+                desc: '官方模型与 EDM 微调模型并排对比，直观评估',
+              },
+              {
+                icon: Music,
+                color: 'blue',
+                title: '音乐库',
+                desc: '云端存储所有分轨结果，随时访问下载',
+              },
+            ].map(({ icon: Icon, color, title, desc }) => (
+              <div
+                key={title}
+                className="bg-white rounded-3xl p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
+              >
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300 bg-${color}-50 border border-${color}-100`}
+                >
+                  <Icon size={22} className={`text-${color}-500`} />
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">{title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Highlights */}
+      <section className="py-24 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">为什么选择 VibeStem</h2>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {[
+              'EDM 优化微调模型，SDR +2.37 dB',
+              '支持 MP3 / WAV / FLAC 常见格式',
+              '纯 GPU 推理，分轨速度极快',
+              'Appwrite 云端存储，安全可靠',
+              '基于 wavesurfer.js 的专业波形显示',
+              '完全开源，毕业设计项目',
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                <CheckCircle size={18} className="text-emerald-500 shrink-0" />
+                <span className="text-sm font-medium text-gray-700">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-24 px-6 bg-gray-900">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="text-4xl font-bold text-white mb-4">立即开始</h2>
+          <p className="text-gray-400 mb-10 text-lg">免费注册，马上体验 AI 音乐分轨</p>
+          <Link
+            to="/register"
+            className="inline-flex items-center gap-2.5 px-8 py-4 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-400 transition-all duration-300 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5"
+          >
+            免费注册
+            <ArrowRight size={18} />
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-8 px-6 border-t border-gray-100 text-center text-sm text-gray-400">
+        © {new Date().getFullYear()} VibeStem · 基于 HTDemucs V4 的 AI 音乐分轨系统
+      </footer>
+    </div>
+  );
+}
