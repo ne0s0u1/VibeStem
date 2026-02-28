@@ -28,7 +28,16 @@ const statusLabels: Record<SunoTaskStatus, string> = {
   SENSITIVE_WORD_ERROR: "内容被过滤",
 };
 
-const GENRE_TAGS = ["Hip Hop","Jazz","Reggae","Pop","R&B","EDM","Country","Folk","Rock","Blues","Classical","Disco","Funk"];
+const EDM_GENRES: { label: string; emoji: string; color: string; sub: string[] }[] = [
+  { label: 'House', emoji: '🏠', color: 'orange', sub: ['Future House', 'Bass House', 'Deep House', 'Tech House', 'Chicago House', 'Acid House'] },
+  { label: 'Techno', emoji: '⚙️', color: 'slate', sub: ['Berlin Techno', 'Industrial Techno', 'Melodic Techno', 'Detroit Techno', 'Acid Techno'] },
+  { label: 'Trance', emoji: '🌊', color: 'cyan', sub: ['Progressive Trance', 'Psytrance', 'Uplifting Trance', 'Vocal Trance', 'Dark Psy', 'Full On'] },
+  { label: 'Drum & Bass', emoji: '🥁', color: 'red', sub: ['Liquid DnB', 'Neurofunk', 'Jump Up', 'Jungle', 'Rollers'] },
+  { label: 'Dubstep', emoji: '💥', color: 'green', sub: ['Brostep', 'Riddim', 'Melodic Dubstep', 'Chillstep'] },
+  { label: 'Ambient', emoji: '🌌', color: 'blue', sub: ['Chillout', 'Lo-fi', 'Ambient Techno', 'Trip Hop', 'Downtempo'] },
+  { label: 'Electro', emoji: '⚡', color: 'yellow', sub: ['Electropop', 'French Touch', 'Big Room', 'Electroclash', 'Complextro'] },
+  { label: 'Hardcore', emoji: '🔥', color: 'pink', sub: ['Happy Hardcore', 'Gabber', 'Hardstyle', 'Frenchcore'] },
+];
 
 export default function GeneratePage() {
   const { user } = useAuth();
@@ -51,6 +60,7 @@ export default function GeneratePage() {
   const [status, setStatus] = useState<SunoTaskStatus | null>(null);
   const [results, setResults] = useState<SunoTrack[]>([]);
   const [error, setError] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
 
   // 历史曲目
   const [savedTracks, setSavedTracks] = useState<GeneratedTrack[]>([]);
@@ -240,8 +250,8 @@ export default function GeneratePage() {
       <div className="w-1/2 shrink-0 bg-white border-r border-gray-100 flex flex-col h-full shadow-[4px_0_24px_-12px_rgba(0,0,0,0.06)]">
 
         <div className="px-6 pt-6 pb-5 border-b border-gray-100">
-          <h2 className="text-[17px] font-bold text-gray-900 tracking-tight">AI 音乐生成</h2>
-          <p className="text-xs text-gray-400 mt-0.5">基于 Suno V5 · 描述即生成</p>
+          <h2 className="text-[17px] font-bold text-gray-900 tracking-tight">AI 电子乐生成</h2>
+          <p className="text-xs text-gray-400 mt-0.5">基于 Suno V5 · 选择风格即生成</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -270,18 +280,18 @@ export default function GeneratePage() {
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" checked={instrumental} onChange={(e) => setInstrumental(e.target.checked)} />
-              <div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500" />
+              <div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600" />
             </label>
           </div>
 
           {/* 描述词/歌词 */}
-          <div className="rounded-2xl border border-gray-200 bg-white focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-500/10 transition-all overflow-hidden">
+          <div className="rounded-2xl border border-gray-200 bg-white focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-500/10 transition-all overflow-hidden">
             <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
                 {customMode ? "歌词内容" : "描述词"}
                 <Info size={12} className="text-gray-300 cursor-help" />
               </label>
-              <button className="text-xs font-medium text-gray-500 hover:text-emerald-600 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all">
+              <button className="text-xs font-medium text-gray-500 hover:text-violet-600 bg-gray-50 hover:bg-violet-50 border border-gray-200 hover:border-violet-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all">
                 <Wand2 size={11} />
                 获取灵感
               </button>
@@ -291,16 +301,48 @@ export default function GeneratePage() {
               onChange={(e) => setPrompt(e.target.value)}
               rows={5}
               maxLength={promptMax}
-              placeholder={customMode ? "在此输入歌词内容…" : "描述你想要的音乐风格、情绪、乐器、年代…"}
+              placeholder={customMode ? "在此输入歌词内容…" : "描述你想要的 EDM 风格、节拍、合成器音色、情绪…"}
               className="w-full bg-transparent px-4 pb-3 text-sm text-gray-800 placeholder-gray-300 resize-none focus:outline-none leading-relaxed"
             />
             <div className="px-4 pb-3.5">
-              <div className="flex flex-wrap gap-1.5">
-                {GENRE_TAGS.map(tag => (
-                  <button key={tag} onClick={() => handleTagClick(tag)} className="text-xs font-medium text-gray-500 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 bg-white px-2.5 py-1 rounded-full transition-all">
-                    {tag}
-                  </button>
-                ))}
+              {/* EDM 风格预设按鈕 */}
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">风格预设</p>
+                {/* 一级：风格类别 */}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {EDM_GENRES.map(g => (
+                    <button
+                      key={g.label}
+                      onClick={() => setSelectedGenre(prev => prev === g.label ? null : g.label)}
+                      className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all ${
+                        selectedGenre === g.label
+                          ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300 hover:text-violet-600 hover:bg-violet-50'
+                      }`}
+                    >
+                      <span>{g.emoji}</span>
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+                {/* 二级：子风格 */}
+                {selectedGenre && (() => {
+                  const genre = EDM_GENRES.find(g => g.label === selectedGenre);
+                  if (!genre) return null;
+                  return (
+                    <div className="flex flex-wrap gap-1.5 pt-2 border-t border-gray-100 animate-in fade-in duration-150">
+                      {genre.sub.map(sub => (
+                        <button
+                          key={sub}
+                          onClick={() => handleTagClick(sub)}
+                          className="text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 hover:border-violet-400 px-2.5 py-1 rounded-full transition-all"
+                        >
+                          + {sub}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
             <div className="flex items-center justify-between px-4 pt-2 pb-3 border-t border-gray-100">
@@ -321,11 +363,11 @@ export default function GeneratePage() {
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest block mb-1.5">歌曲标题</label>
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="未命名" className="w-full bg-white border border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none transition-all" />
+                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="未命名" className="w-full bg-white border border-gray-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none transition-all" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest block mb-1.5">音乐风格</label>
-                <input type="text" value={style} onChange={(e) => setStyle(e.target.value)} placeholder="如：Dark Synthwave、Acoustic Pop…" className="w-full bg-white border border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none transition-all" />
+                <input type="text" value={style} onChange={(e) => setStyle(e.target.value)} placeholder="如：Dark Synthwave、Future House…" className="w-full bg-white border border-gray-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none transition-all" />
               </div>
             </div>
           )}
@@ -342,14 +384,14 @@ export default function GeneratePage() {
             {generating ? (
               <><Loader size={16} className="animate-spin" /> 生成中…</>
             ) : (
-              <><Sparkles size={16} className="text-emerald-400" /> 立即生成音乐</>
+              <><Sparkles size={16} className="text-violet-400" /> 尽情生成 EDM</>
             )}
           </button>
 
           {status && (
-            <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2.5">
-              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shrink-0" />
-              <p className="text-xs text-emerald-700 font-medium" aria-live="polite">{statusLabels[status]}</p>
+            <div className="flex items-center gap-2.5 bg-violet-50 border border-violet-100 rounded-xl px-4 py-2.5">
+              <div className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-pulse shrink-0" />
+              <p className="text-xs text-violet-700 font-medium" aria-live="polite">{statusLabels[status]}</p>
             </div>
           )}
 
@@ -371,7 +413,7 @@ export default function GeneratePage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-[17px] font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                  <Sparkles size={16} className="text-emerald-500" />
+                  <Sparkles size={16} className="text-violet-500" />
                   Workspace
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">
@@ -384,11 +426,11 @@ export default function GeneratePage() {
             {(generating || results.length > 0) && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-widest text-emerald-600">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-violet-600">
                     {generating && results.length === 0 ? (status ? statusLabels[status] : "排队中…") : "刚刚生成"}
                   </span>
                   {generating && (
-                    <div className="w-3 h-3 border-[1.5px] border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-3 h-3 border-[1.5px] border-violet-500 border-t-transparent rounded-full animate-spin" />
                   )}
                 </div>
 
@@ -411,12 +453,12 @@ export default function GeneratePage() {
                     const isActive = currentTrack?.id === pid;
                     const isPlaying = isActive && playing;
                     return (
-                      <div key={track.id} className="bg-white border border-emerald-100 hover:border-emerald-300 hover:shadow-md rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 shadow-sm">
+                      <div key={track.id} className="bg-white border border-violet-100 hover:border-violet-300 hover:shadow-md rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 shadow-sm">
                         <TrackCover imageUrl={track.imageUrl} isPlaying={isPlaying} size={48} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="text-gray-900 font-semibold text-sm truncate">{track.title || "未命名曲目"}</h3>
-                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md shrink-0">NEW</span>
+                            <span className="text-[10px] font-bold text-violet-600 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-md shrink-0">NEW</span>
                           </div>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {track.duration != null && (
@@ -425,15 +467,15 @@ export default function GeneratePage() {
                               </span>
                             )}
                             {track.tags?.split(",").slice(0, 2).map(tag => (
-                              <span key={tag} className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md">
+                              <span key={tag} className="text-xs font-medium text-violet-600 bg-violet-50 border border-violet-100 px-2 py-0.5 rounded-md">
                                 {tag.trim()}
                               </span>
                             ))}
                           </div>
                         </div>
                         <button
-                          onClick={() => playTrack({ id: pid, url: track.audioUrl, title: track.title || "未命名曲目", subtitle: track.tags?.split(",")[0]?.trim(), color: '#10b981', imageUrl: track.imageUrl })}
-                          className="w-9 h-9 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center shrink-0 transition-all hover:scale-105 active:scale-95 shadow-sm shadow-emerald-500/20"
+                          onClick={() => playTrack({ id: pid, url: track.audioUrl, title: track.title || "未命名曲目", subtitle: track.tags?.split(",")[0]?.trim(), color: '#7c3aed', imageUrl: track.imageUrl })}
+                          className="w-9 h-9 rounded-full bg-violet-600 hover:bg-violet-500 flex items-center justify-center shrink-0 transition-all hover:scale-105 active:scale-95 shadow-sm shadow-violet-500/20"
                           aria-label={isPlaying ? "暂停" : "播放"}
                         >
                           {isPlaying
@@ -451,7 +493,7 @@ export default function GeneratePage() {
             {/* ② 历史曲目（始终显示） */}
             {loadingHistory ? (
               <div className="flex items-center justify-center py-12 gap-3">
-                <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-violet-200 border-t-violet-500 rounded-full animate-spin" />
                 <p className="text-xs text-gray-400">加载历史…</p>
               </div>
             ) : savedTracks.length > 0 ? (
@@ -491,7 +533,7 @@ export default function GeneratePage() {
                   const isActive = currentTrack?.id === pid;
                   const isPlaying = isActive && playing;
                   return (
-                    <div key={track.$id} className={`bg-white border rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 shadow-sm group ${isActive ? 'border-emerald-200 ring-1 ring-emerald-100' : 'border-gray-100 hover:border-emerald-200 hover:shadow-md'}`}>
+                    <div key={track.$id} className={`bg-white border rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 shadow-sm group ${isActive ? 'border-violet-200 ring-1 ring-violet-100' : 'border-gray-100 hover:border-violet-200 hover:shadow-md'}`}>
                       <TrackCover imageUrl={track.imageUrl} isPlaying={isPlaying} size={48} />
                       <div className="flex-1 min-w-0">
                         <h3 className="text-gray-900 font-semibold text-sm mb-1 truncate">{track.title || "未命名曲目"}</h3>
@@ -512,7 +554,7 @@ export default function GeneratePage() {
                         <div className={`flex items-center gap-1 transition-opacity ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                           {blobUrl && (
                             <a href={blobUrl} download={`${track.title || "track"}.mp3`}
-                              className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all" aria-label="下载">
+                              className="p-2 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-all" aria-label="下载">
                               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             </a>
                           )}
@@ -524,12 +566,12 @@ export default function GeneratePage() {
                         {/* Play button */}
                         <button
                           disabled={!blobUrl}
-                          onClick={() => blobUrl && playTrack({ id: pid, url: blobUrl, title: track.title || "未命名曲目", subtitle: track.tags?.[0]?.trim(), color: '#10b981', imageUrl: track.imageUrl })}
+                          onClick={() => blobUrl && playTrack({ id: pid, url: blobUrl, title: track.title || "未命名曲目", subtitle: track.tags?.[0]?.trim(), color: '#7c3aed', imageUrl: track.imageUrl })}
                           className={`w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 ${
                             blobUrl
                               ? isActive
-                                ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20'
-                                : 'bg-gray-100 hover:bg-emerald-500 group-hover:bg-emerald-500'
+                                ? 'bg-violet-600 shadow-sm shadow-violet-500/20'
+                                : 'bg-gray-100 hover:bg-violet-600 group-hover:bg-violet-600'
                               : 'bg-gray-100 opacity-40 cursor-not-allowed'
                           }`}
                           aria-label={isPlaying ? "暂停" : "播放"}
@@ -549,7 +591,7 @@ export default function GeneratePage() {
                   <div className="flex justify-center gap-1.5 pt-1">
                     {Array.from({ length: Math.ceil(savedTracks.length / HISTORY_PAGE_SIZE) }).map((_, i) => (
                       <button key={i} onClick={() => setHistoryPage(i)}
-                        className={`rounded-full transition-all duration-200 ${i === historyPage ? 'w-4 h-1.5 bg-emerald-500' : 'w-1.5 h-1.5 bg-gray-200 hover:bg-gray-300'}`}
+                        className={`rounded-full transition-all duration-200 ${i === historyPage ? 'w-4 h-1.5 bg-violet-600' : 'w-1.5 h-1.5 bg-gray-200 hover:bg-gray-300'}`}
                         aria-label={`第 ${i + 1} 页`} />
                     ))}
                   </div>
@@ -591,9 +633,9 @@ function TrackCover({ imageUrl, isPlaying, size = 48 }: { imageUrl?: string; isP
       {isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="flex items-end gap-[3px]" style={{ height: 18 }}>
-            <div className="eq-bar w-[3px] bg-emerald-400 rounded-full" style={{ height: '100%' }} />
-            <div className="eq-bar w-[3px] bg-emerald-400 rounded-full" style={{ height: '100%' }} />
-            <div className="eq-bar w-[3px] bg-emerald-400 rounded-full" style={{ height: '100%' }} />
+            <div className="eq-bar w-[3px] bg-violet-400 rounded-full" style={{ height: '100%' }} />
+            <div className="eq-bar w-[3px] bg-violet-400 rounded-full" style={{ height: '100%' }} />
+            <div className="eq-bar w-[3px] bg-violet-400 rounded-full" style={{ height: '100%' }} />
           </div>
         </div>
       )}

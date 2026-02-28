@@ -11,10 +11,10 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/20">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-md shadow-purple-500/20">
               <Music size={16} className="text-white" />
             </div>
-            <span className="text-xl font-bold">VibeStem</span>
+            <span className="text-xl font-bold">EDMVibe</span>
           </div>
           <div className="flex items-center gap-3">
             {!loading && (
@@ -55,23 +55,23 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="relative overflow-hidden py-28 px-6">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-100 rounded-full mix-blend-multiply blur-3xl opacity-60 animate-pulse" />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-100 rounded-full mix-blend-multiply blur-3xl opacity-60 animate-pulse" />
           <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply blur-3xl opacity-60 animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
         <div className="relative max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-full text-sm font-semibold text-emerald-700 mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 border border-purple-100 rounded-full text-sm font-semibold text-purple-700 mb-8">
             <Sparkles size={14} />
-            基于 HTDemucs V4 深度学习
+            专为电子音乐打造 · EDM AI 创作平台
           </div>
           <h1 className="text-6xl font-extrabold tracking-tight text-gray-900 leading-tight mb-6">
-            AI 音乐智能分轨
+            AI 电子乐生成
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">
-              专业级音源分离
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-purple-600">
+              强化分轨 · 在线处理
             </span>
           </h1>
           <p className="text-xl text-gray-500 mb-12 max-w-2xl mx-auto leading-relaxed">
-            一键分离人声与伴奏，结合 Suno AI 音乐生成与双模型对比，为音乐创作赋能。
+            一键生成 House、Techno、Trance 等风格 EDM，HTDemucs V4 深度分轨，配合专业音频工具链，让电子音乐创作更自由。
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             {user ? (
@@ -107,34 +107,34 @@ export default function LandingPage() {
       <section className="py-24 px-6 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">强大的核心功能</h2>
-            <p className="text-gray-500 text-lg">专业音频工具链，一站式音乐处理</p>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">EDMVibe 核心功能</h2>
+            <p className="text-gray-500 text-lg">AI 电子乐创作全流程，一站式完成</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               {
-                icon: Scissors,
-                color: 'rose',
-                title: '智能分轨',
-                desc: 'HTDemucs V4 深度神经网络，分离人声、鼓、贝斯、其他',
+                icon: Sparkles,
+                color: 'violet',
+                title: 'EDM AI 生成',
+                desc: 'House、Techno、Trance、DnB 等多风格预设，Suno V5 一键生成',
               },
               {
-                icon: Sparkles,
-                color: 'emerald',
-                title: 'AI 生成',
-                desc: 'Suno V4/V5 模型，文字生成完整音乐作品',
+                icon: Scissors,
+                color: 'rose',
+                title: '强化分轨',
+                desc: 'HTDemucs V4 + EDM 微调模型，分离人声、Kick、Bass、Synth',
               },
               {
                 icon: GitCompare,
-                color: 'violet',
+                color: 'purple',
                 title: '双模型对比',
                 desc: '官方模型与 EDM 微调模型并排对比，直观评估',
               },
               {
                 icon: Music,
                 color: 'blue',
-                title: '音乐库',
-                desc: '云端存储所有分轨结果，随时访问下载',
+                title: '音频工具箱',
+                desc: 'BPM 检测、EQ 均衡、Time Stretch，在线一站式处理',
               },
             ].map(({ icon: Icon, color, title, desc }) => (
               <div
@@ -158,19 +158,19 @@ export default function LandingPage() {
       <section className="py-24 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">为什么选择 VibeStem</h2>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">为什么选择 EDMVibe</h2>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             {[
+              'House / Techno / Trance 等 8 大 EDM 风格预设按鈕',
               'EDM 优化微调模型，SDR +2.37 dB',
               '支持 MP3 / WAV / FLAC 常见格式',
               '纯 GPU 推理，分轨速度极快',
               'Appwrite 云端存储，安全可靠',
               '基于 wavesurfer.js 的专业波形显示',
-              '完全开源，毕业设计项目',
             ].map((item) => (
               <div key={item} className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                <CheckCircle size={18} className="text-emerald-500 shrink-0" />
+                <CheckCircle size={18} className="text-purple-500 shrink-0" />
                 <span className="text-sm font-medium text-gray-700">{item}</span>
               </div>
             ))}
@@ -181,11 +181,11 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="py-24 px-6 bg-gray-900">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">立即开始</h2>
-          <p className="text-gray-400 mb-10 text-lg">免费注册，马上体验 AI 音乐分轨</p>
+          <h2 className="text-4xl font-bold text-white mb-4">开始创作</h2>
+          <p className="text-gray-400 mb-10 text-lg">免费注册，马上体验 AI 电子乐生成与分轨</p>
           <Link
             to="/register"
-            className="inline-flex items-center gap-2.5 px-8 py-4 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-400 transition-all duration-300 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2.5 px-8 py-4 bg-purple-500 text-white font-bold rounded-2xl hover:bg-purple-400 transition-all duration-300 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 hover:-translate-y-0.5"
           >
             免费注册
             <ArrowRight size={18} />
@@ -195,7 +195,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-gray-100 text-center text-sm text-gray-400">
-        © {new Date().getFullYear()} VibeStem · 基于 HTDemucs V4 的 AI 音乐分轨系统
+        © {new Date().getFullYear()} EDMVibe · 面向电子音乐的 AI 生成与分轨平台
       </footer>
     </div>
   );

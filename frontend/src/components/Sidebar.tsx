@@ -38,11 +38,11 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-8">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform duration-300">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shrink-0 shadow-lg shadow-purple-500/20 group-hover:scale-105 transition-transform duration-300">
             <Music size={20} className="text-white" aria-hidden="true" />
           </div>
-          <span className="text-2xl font-bold tracking-tight text-gray-900 group-hover:text-emerald-600 transition-colors">
-            VibeStem
+          <span className="text-2xl font-bold tracking-tight text-gray-900 group-hover:text-purple-600 transition-colors">
+            EDMVibe
           </span>
         </Link>
       </div>
@@ -71,7 +71,7 @@ export default function Sidebar() {
                   size={20} 
                   aria-hidden="true" 
                   className={`transition-colors duration-300 ${
-                    isActive ? 'text-emerald-400' : 'text-gray-400 group-hover:text-gray-900'
+                    isActive ? 'text-purple-400' : 'text-gray-400 group-hover:text-gray-900'
                   }`}
                 />
                 <span className="relative z-10">{label}</span>

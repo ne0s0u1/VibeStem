@@ -2,9 +2,17 @@ import { Client, Account, Databases, Storage, Query, ID, Permission, Role } from
 import { APPWRITE_CONFIG } from './config';
 
 const client = new Client();
-client
-  .setEndpoint(APPWRITE_CONFIG.endpoint)
-  .setProject(APPWRITE_CONFIG.projectId);
+
+const endpoint = APPWRITE_CONFIG.endpoint;
+const projectId = APPWRITE_CONFIG.projectId;
+
+if (!endpoint || !projectId || endpoint.includes('你的') || projectId.includes('你的')) {
+  console.error(
+    '[EDMVibe] Appwrite 配置缺失！请在 frontend/.env 中填写 VITE_APPWRITE_ENDPOINT 和 VITE_APPWRITE_PROJECT_ID 等变量。\n参考 .env.example 文件。'
+  );
+} else {
+  client.setEndpoint(endpoint).setProject(projectId);
+}
 
 export const account = new Account(client);
 export const databases = new Databases(client);

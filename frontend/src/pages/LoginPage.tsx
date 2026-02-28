@@ -30,10 +30,10 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <Link to="/" className="flex items-center justify-center gap-2.5 mb-10 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg shadow-purple-500/20">
             <Music size={20} className="text-white" />
           </div>
-          <span className="text-2xl font-bold text-gray-900">VibeStem</span>
+          <span className="text-2xl font-bold text-gray-900">EDMVibe</span>
         </Link>
 
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
@@ -54,7 +54,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500 transition-all"
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
@@ -67,7 +67,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500 transition-all"
                 placeholder="••••••••"
                 required
                 autoComplete="current-password"
@@ -79,7 +79,7 @@ export default function LoginPage() {
               className="w-full bg-gray-900 text-white font-semibold py-3 rounded-xl hover:bg-gray-800 transition-all duration-200 disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
             >
               {loading ? <Loader size={18} className="animate-spin" /> : null}
-              {loading ? '登录中...' : '登录'}
+              {loading ? '登录�?..' : '登录'}
             </button>
           </form>
         </div>
