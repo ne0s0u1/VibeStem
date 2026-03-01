@@ -8,6 +8,12 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+  updateAvatar: (patch: {
+    avatarUrl?: string;
+    avatarFileId?: string;
+    avatarBucketId?: string;
+  }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -16,11 +22,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Models.User<Models.Preferences> | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const refreshUser = async () => {
+    const u = await account.get();
+    setUser(u);
+  };
+
   useEffect(() => {
-    account.get()
-      .then(setUser)
+    refreshUser()
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -39,8 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!isSessionActive) throw err;
       // Session already exists — just restore it, no need to create a new one.
     }
-    const u = await account.get();
-    setUser(u);
+    await refreshUser();
   };
 
   const register = async (email: string, password: string, name: string) => {
@@ -53,8 +63,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const updateAvatar = async (patch: {
+    avatarUrl?: string;
+    avatarFileId?: string;
+    avatarBucketId?: string;
+  }) => {
+    const currentPrefs = (user?.prefs ?? {}) as Record<string, unknown>;
+    await account.updatePrefs({
+      ...currentPrefs,
+      ...patch,
+      avatarUpdatedAt: new Date().toISOString(),
+    });
+    await refreshUser();
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser, updateAvatar }}>
       {children}
     </AuthContext.Provider>
   );

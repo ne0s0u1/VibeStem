@@ -154,6 +154,111 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ─── Feature Section: 交替左右布局 ── */}
+      {/* 图片占位说明：将来替换 imgSrc 为 Appwrite 预览 URL：
+          `${APPWRITE_CONFIG.endpoint}/storage/buckets/${featuresBucketId}/files/<fileId>/preview?project=${projectId}` */}
+      {[
+        {
+          title: 'AI 电子乐一键生成',
+          desc: '内置 8 大 EDM 风格预设，覆盖 House、Techno、Trance、DnB 等主流方向。Suno V5 模型加持，从零开始创作一首完整 EDM 曲目只需 30 秒，支持自定义歌词、风格标签与参考音频。',
+          points: ['8 大主流 EDM 风格预设', 'Suno V5 最新模型', '支持自定义歌词与风格', '结果即时入库，随时重放'],
+          imgSrc: null, // 替换为 Appwrite 图片 URL
+          imgPlaceholder: 'from-violet-400 via-purple-500 to-indigo-600',
+          mockType: 'generate',
+        },
+        {
+          title: '深度智能分轨',
+          desc: 'HTDemucs V4 深度模型将混音拆分为人声、鼓、贝斯和其他乐器，EDM 优化微调版本 SDR 提升 +2.37 dB。波形同步播放，每轨独立音量控制，支持一键下载单轨文件。',
+          points: ['HTDemucs V4 + EDM 微调', 'SDR +2.37 dB 品质提升', '人声 / 鼓 / 贝斯 / 旋律四轨输出', '逐轨波形播放与音量混音'],
+          imgSrc: null,
+          imgPlaceholder: 'from-rose-400 via-pink-500 to-fuchsia-600',
+          mockType: 'separate',
+        },
+        {
+          title: '双模型对比评估',
+          desc: '将同一首歌同时送入官方 HTDemucs 与 EDM 微调模型，两组分轨结果左右并排展示，音量、波形、下载一应俱全，让差异一目了然，帮助你选出最佳分轨方案。',
+          points: ['官方模型 vs EDM 微调模型', '双路并行推理', '左右波形同步对比', '独立下载任意模型输出'],
+          imgSrc: null,
+          imgPlaceholder: 'from-cyan-400 via-sky-500 to-blue-600',
+          mockType: 'compare',
+        },
+      ].map(({ title, desc, points, imgSrc, imgPlaceholder, mockType }, idx) => {
+        const isEven = idx % 2 === 1;
+        const TextBlock = (
+          <div className="flex flex-col justify-center py-8">
+            <h2 className="text-3xl font-extrabold text-gray-900 mb-4 leading-tight">{title}</h2>
+            <p className="text-gray-500 text-base leading-relaxed mb-6">{desc}</p>
+            <ul className="space-y-2.5">
+              {points.map(p => (
+                <li key={p} className="flex items-center gap-2.5 text-sm font-medium text-gray-700">
+                  <CheckCircle size={16} className="text-purple-500 shrink-0" />
+                  {p}
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+        const ImgBlock = (
+          <div className="relative flex items-center justify-center py-8">
+            {imgSrc ? (
+              <img
+                src={imgSrc}
+                alt={title}
+                className="w-full max-w-md rounded-3xl shadow-2xl object-cover aspect-[4/3]"
+              />
+            ) : (
+              /* 图片占位区 — 上传图片后替换为 <img> */
+              <div className={`w-full max-w-md aspect-[4/3] rounded-3xl bg-gradient-to-br ${imgPlaceholder} shadow-2xl flex flex-col items-center justify-center gap-3 overflow-hidden relative`}>
+                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_30%_30%,white,transparent)]" />
+                {mockType === 'generate' && (
+                  <div className="w-4/5 space-y-2 px-4">
+                    {['House', 'Techno', 'Trance', 'Drum & Bass'].map((s, i) => (
+                      <div key={s} className={`h-7 rounded-full bg-white/20 flex items-center px-3 text-white/80 text-xs font-semibold transition-all`} style={{ width: `${70 + i * 7}%` }}>{s}</div>
+                    ))}
+                    <div className="h-9 rounded-full bg-white/40 flex items-center justify-center text-white text-xs font-bold mt-3">✦ 开始生成</div>
+                  </div>
+                )}
+                {mockType === 'separate' && (
+                  <div className="w-4/5 space-y-2 px-2">
+                    {[['人声', 'w-full'], ['鼓', 'w-4/5'], ['贝斯', 'w-3/5'], ['其他', 'w-11/12']].map(([label, w]) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <span className="text-white/70 text-[10px] w-8 font-medium">{label}</span>
+                        <div className={`h-4 ${w} rounded-full bg-white/25 relative overflow-hidden`}>
+                          <div className="absolute inset-0 flex items-center px-1 gap-px">
+                            {Array.from({ length: 20 }).map((_, i) => (
+                              <div key={i} className="flex-1 rounded-full bg-white/50" style={{ height: `${30 + Math.random() * 60}%` }} />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {mockType === 'compare' && (
+                  <div className="w-4/5 grid grid-cols-2 gap-2 px-1">
+                    {['官方模型', '微调模型'].map(m => (
+                      <div key={m} className="bg-white/15 rounded-xl p-2 space-y-1">
+                        <p className="text-white/80 text-[10px] font-bold text-center">{m}</p>
+                        {['人声', '鼓', '贝斯'].map(t => (
+                          <div key={t} className="h-2 rounded-full bg-white/30" />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+        return (
+          <section key={title} className={`py-20 px-6 ${isEven ? 'bg-gray-50' : 'bg-white'}`}>
+            <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+              {isEven ? <>{ImgBlock}{TextBlock}</> : <>{TextBlock}{ImgBlock}</>}
+            </div>
+          </section>
+        );
+      })}
+
       {/* Highlights */}
       <section className="py-24 px-6">
         <div className="max-w-4xl mx-auto">

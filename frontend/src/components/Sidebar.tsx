@@ -1,5 +1,8 @@
+import { useRef, useState } from 'react';
 import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { APPWRITE_CONFIG } from '../lib/config';
+import { storage, ID, Permission, Role } from '../lib/appwrite';
 import {
   Music,
   Scissors,
@@ -10,6 +13,7 @@ import {
   LayoutDashboard,
   ChevronLeft,
   Wand2,
+  Loader,
 } from 'lucide-react';
 
 const navItems = [
@@ -22,13 +26,107 @@ const navItems = [
 ];
 
 export default function Sidebar() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateAvatar } = useAuth();
   const navigate = useNavigate();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const prefs = (user?.prefs ?? {}) as Record<string, unknown>;
+  const avatarFileId = typeof prefs.avatarFileId === 'string' ? prefs.avatarFileId : '';
+  const avatarBucketId = typeof prefs.avatarBucketId === 'string' ? prefs.avatarBucketId : APPWRITE_CONFIG.uploadsBucketId;
+  const avatarUpdatedAt = typeof prefs.avatarUpdatedAt === 'string' ? prefs.avatarUpdatedAt : '';
+  const avatarUrl = avatarFileId
+    ? `${storage.getFileView(avatarBucketId, avatarFileId).toString()}&v=${encodeURIComponent(avatarUpdatedAt || '1')}`
+    : (typeof prefs.avatarUrl === 'string' ? prefs.avatarUrl : '');
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
+
+  const readAsDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ''));
+      reader.onerror = () => reject(new Error('读取文件失败'));
+      reader.readAsDataURL(file);
+    });
+
+  const loadImage = (src: string) =>
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('图片解析失败'));
+      img.src = src;
+    });
+
+  async function compressAvatar(file: File): Promise<Blob> {
+    const dataUrl = await readAsDataUrl(file);
+    const img = await loadImage(dataUrl);
+    const maxSize = 384;
+    const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1);
+    const width = Math.max(1, Math.round(img.width * ratio));
+    const height = Math.max(1, Math.round(img.height * ratio));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('浏览器不支持图片处理');
+    ctx.drawImage(img, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/webp', 0.82);
+    });
+    if (!blob) throw new Error('WebP 压缩失败');
+    return blob;
+  }
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('请选择图片文件');
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+      const oldAvatarFileId = typeof prefs.avatarFileId === 'string' ? prefs.avatarFileId : '';
+      const oldAvatarBucketId = typeof prefs.avatarBucketId === 'string' ? prefs.avatarBucketId : APPWRITE_CONFIG.uploadsBucketId;
+
+      const webpBlob = await compressAvatar(file);
+      const webpFile = new File([webpBlob], `avatar-${user?.$id ?? 'user'}.webp`, { type: 'image/webp' });
+
+      const uploaded = await storage.createFile(
+        APPWRITE_CONFIG.uploadsBucketId,
+        ID.unique(),
+        webpFile,
+        user
+          ? [
+              Permission.read(Role.user(user.$id)),
+              Permission.delete(Role.user(user.$id)),
+            ]
+          : undefined
+      );
+
+      const viewUrl = storage.getFileView(APPWRITE_CONFIG.uploadsBucketId, uploaded.$id).toString();
+      await updateAvatar({
+        avatarUrl: viewUrl,
+        avatarFileId: uploaded.$id,
+        avatarBucketId: APPWRITE_CONFIG.uploadsBucketId,
+      });
+
+      if (oldAvatarFileId && oldAvatarFileId !== uploaded.$id) {
+        storage.deleteFile(oldAvatarBucketId, oldAvatarFileId).catch(() => undefined);
+      }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : '头像更新失败');
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  }
 
   return (
     <aside
@@ -94,10 +192,33 @@ export default function Sidebar() {
 
       {/* User */}
       <div className="p-5 border-t border-gray-100/50 bg-gray-50/50">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
         <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-md">
-            {user?.name?.[0]?.toUpperCase() ?? '?'}
-          </div>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploadingAvatar}
+            className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-md overflow-hidden relative disabled:opacity-70 cursor-pointer"
+            title="点击更换头像"
+            aria-label="点击更换头像"
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="用户头像" className="w-full h-full object-cover" />
+            ) : (
+              <span>{user?.name?.[0]?.toUpperCase() ?? '?'}</span>
+            )}
+            {uploadingAvatar && (
+              <span className="absolute inset-0 bg-black/45 flex items-center justify-center">
+                <Loader size={14} className="animate-spin text-white" />
+              </span>
+            )}
+          </button>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-gray-900 truncate">{user?.name}</p>
             <p className="text-xs font-medium text-gray-500 truncate">{user?.email}</p>

@@ -31,10 +31,10 @@ export default function GlobalPlayer() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-4px_24px_-6px_rgba(0,0,0,0.08)] select-none">
-      {/* Slim progress bar at very top edge */}
+      {/* Slim progress bar — h-4 hit area, 3px visual track, centered thumb */}
       <div
         ref={progressRef}
-        className="absolute top-0 left-0 right-0 h-[3px] cursor-pointer group/bar"
+        className="absolute top-0 left-0 right-0 h-4 cursor-pointer group/bar"
         onClick={handleProgressClick}
         role="slider"
         aria-label="播放进度"
@@ -47,14 +47,16 @@ export default function GlobalPlayer() {
           if (e.key === 'ArrowLeft') seekTo(Math.max(0, progress - 0.02));
         }}
       >
-        <div className="w-full h-full bg-gray-100" />
+        {/* Visual track — 3px, vertically centered in hit area */}
+        <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-[3px] bg-gray-100 overflow-hidden">
+          <div
+            className="h-full transition-none"
+            style={{ width: `${progress * 100}%`, backgroundColor: color }}
+          />
+        </div>
+        {/* Scrubber thumb — centered on track */}
         <div
-          className="absolute top-0 left-0 h-full transition-none rounded-r-full"
-          style={{ width: `${progress * 100}%`, backgroundColor: color }}
-        />
-        {/* Scrubber thumb */}
-        <div
-          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full shadow opacity-0 group-hover/bar:opacity-100 transition-opacity border-2 border-white"
+          className="absolute top-1/2 w-3.5 h-3.5 rounded-full shadow-md opacity-0 group-hover/bar:opacity-100 transition-opacity border-2 border-white"
           style={{ left: `${progress * 100}%`, transform: 'translate(-50%, -50%)', backgroundColor: color }}
         />
       </div>

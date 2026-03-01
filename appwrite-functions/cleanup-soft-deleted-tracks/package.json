@@ -1,0 +1,13 @@
+{
+  "name": "cleanup-soft-deleted-tracks",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js"
+  },
+  "dependencies": {
+    "node-appwrite": "^14.1.0"
+  }
+}

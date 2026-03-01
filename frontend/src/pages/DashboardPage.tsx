@@ -1,4 +1,4 @@
-import { Scissors, Sparkles, Music, GitCompare, ArrowRight, Zap, AudioWaveform, Play } from 'lucide-react';
+import { Scissors, Sparkles, GitCompare, ArrowRight, Zap, AudioWaveform, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -35,17 +35,6 @@ const quickActions = [
     border: 'border-pink-100',
     iconColor: 'text-pink-500',
     hoverRing: 'group-hover:ring-pink-500/20',
-  },
-  {
-    to: '/app/library',
-    icon: Music,
-    title: '我的音乐库',
-    desc: '管理所有分轨、生成曲目，云端存储随时访问',
-    gradient: 'from-blue-400 to-cyan-500',
-    bg: 'bg-blue-50/50',
-    border: 'border-blue-100',
-    iconColor: 'text-blue-500',
-    hoverRing: 'group-hover:ring-blue-500/20',
   },
 ] as const;
 

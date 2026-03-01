@@ -29,15 +29,17 @@ const statusLabels: Record<SunoTaskStatus, string> = {
 };
 
 const EDM_GENRES: { label: string; emoji: string; color: string; sub: string[] }[] = [
-  { label: 'House', emoji: '🏠', color: 'orange', sub: ['Future House', 'Bass House', 'Deep House', 'Tech House', 'Chicago House', 'Acid House'] },
-  { label: 'Techno', emoji: '⚙️', color: 'slate', sub: ['Berlin Techno', 'Industrial Techno', 'Melodic Techno', 'Detroit Techno', 'Acid Techno'] },
-  { label: 'Trance', emoji: '🌊', color: 'cyan', sub: ['Progressive Trance', 'Psytrance', 'Uplifting Trance', 'Vocal Trance', 'Dark Psy', 'Full On'] },
-  { label: 'Drum & Bass', emoji: '🥁', color: 'red', sub: ['Liquid DnB', 'Neurofunk', 'Jump Up', 'Jungle', 'Rollers'] },
-  { label: 'Dubstep', emoji: '💥', color: 'green', sub: ['Brostep', 'Riddim', 'Melodic Dubstep', 'Chillstep'] },
-  { label: 'Ambient', emoji: '🌌', color: 'blue', sub: ['Chillout', 'Lo-fi', 'Ambient Techno', 'Trip Hop', 'Downtempo'] },
-  { label: 'Electro', emoji: '⚡', color: 'yellow', sub: ['Electropop', 'French Touch', 'Big Room', 'Electroclash', 'Complextro'] },
-  { label: 'Hardcore', emoji: '🔥', color: 'pink', sub: ['Happy Hardcore', 'Gabber', 'Hardstyle', 'Frenchcore'] },
+  { label: 'House', emoji: '🏠', color: '#f97316', sub: ['Future House', 'Bass House', 'Deep House', 'Tech House', 'Chicago House', 'Acid House'] },
+  { label: 'Techno', emoji: '⚙️', color: '#475569', sub: ['Berlin Techno', 'Industrial Techno', 'Melodic Techno', 'Detroit Techno', 'Acid Techno'] },
+  { label: 'Trance', emoji: '🌊', color: '#06b6d4', sub: ['Progressive Trance', 'Psytrance', 'Uplifting Trance', 'Vocal Trance', 'Dark Psy', 'Full On'] },
+  { label: 'Drum & Bass', emoji: '🥁', color: '#ef4444', sub: ['Liquid DnB', 'Neurofunk', 'Jump Up', 'Jungle', 'Rollers'] },
+  { label: 'Dubstep', emoji: '💥', color: '#22c55e', sub: ['Brostep', 'Riddim', 'Melodic Dubstep', 'Chillstep'] },
+  { label: 'Ambient', emoji: '🌌', color: '#3b82f6', sub: ['Chillout', 'Lo-fi', 'Ambient Techno', 'Trip Hop', 'Downtempo'] },
+  { label: 'Electro', emoji: '⚡', color: '#eab308', sub: ['Electropop', 'French Touch', 'Big Room', 'Electroclash', 'Complextro'] },
+  { label: 'Hardcore', emoji: '🔥', color: '#ec4899', sub: ['Happy Hardcore', 'Gabber', 'Hardstyle', 'Frenchcore'] },
 ];
+
+type GenrePreset = { label: string; emoji?: string; color: string; sub: string[] };
 
 export default function GeneratePage() {
   const { user } = useAuth();
@@ -54,7 +56,8 @@ export default function GeneratePage() {
   const [styleWeight] = useState(0.5);
   const [weirdnessConstraint] = useState(0.5);
   const [audioWeight] = useState(0.5);
-  const [personaId] = useState("");
+  // 动态风格预设：从 Appwrite 加载，失败则回退到本地数据
+  const [genres, setGenres] = useState<GenrePreset[]>(EDM_GENRES);  const [personaId] = useState("");
 
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState<SunoTaskStatus | null>(null);
@@ -80,6 +83,28 @@ export default function GeneratePage() {
 
   useEffect(() => {
     loadSavedTracks();
+  }, []);
+
+  // 从 Appwrite styles 集合动态加载风格预设，失败则保留本地 EDM_GENRES
+  useEffect(() => {
+    if (!APPWRITE_CONFIG.stylesCollectionId) return;
+    databases.listDocuments(
+      APPWRITE_CONFIG.databaseId,
+      APPWRITE_CONFIG.stylesCollectionId
+    ).then((res) => {
+      if (res.documents.length > 0) {
+        const sorted = res.documents
+          .slice()
+          .sort((a, b) => ((a.order as number) ?? 0) - ((b.order as number) ?? 0));
+        const limited = sorted.slice(0, 50);
+        setGenres(limited.map(doc => ({
+          label: doc.label as string,
+          emoji: (doc.emoji as string | undefined) ?? '',
+          color: doc.color as string,
+          sub: (doc.sub ?? []) as string[],
+        })));
+      }
+    }).catch(() => { /* fallback to EDM_GENRES */ });
   }, []);
 
   async function loadSavedTracks() {
@@ -309,25 +334,30 @@ export default function GeneratePage() {
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">风格预设</p>
                 {/* 一级：风格类别 */}
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {EDM_GENRES.map(g => (
+                <div className={`${genres.length <= 4 ? 'grid grid-cols-2 gap-2' : 'flex flex-wrap gap-1.5'} mb-2`}>
+                  {genres.map(g => (
                     <button
                       key={g.label}
                       onClick={() => setSelectedGenre(prev => prev === g.label ? null : g.label)}
                       className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all ${
                         selectedGenre === g.label
-                          ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300 hover:text-violet-600 hover:bg-violet-50'
+                          ? 'text-white shadow-sm'
+                          : 'bg-white hover:brightness-95'
                       }`}
+                      style={
+                        selectedGenre === g.label
+                          ? { backgroundColor: g.color, borderColor: g.color }
+                          : { color: g.color, borderColor: g.color }
+                      }
                     >
-                      <span>{g.emoji}</span>
+                      {g.emoji ? <span>{g.emoji}</span> : null}
                       {g.label}
                     </button>
                   ))}
                 </div>
                 {/* 二级：子风格 */}
                 {selectedGenre && (() => {
-                  const genre = EDM_GENRES.find(g => g.label === selectedGenre);
+                  const genre = genres.find(g => g.label === selectedGenre);
                   if (!genre) return null;
                   return (
                     <div className="flex flex-wrap gap-1.5 pt-2 border-t border-gray-100 animate-in fade-in duration-150">
@@ -335,7 +365,8 @@ export default function GeneratePage() {
                         <button
                           key={sub}
                           onClick={() => handleTagClick(sub)}
-                          className="text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 hover:border-violet-400 px-2.5 py-1 rounded-full transition-all"
+                          className="text-xs font-medium border px-2.5 py-1 rounded-full transition-all hover:brightness-95"
+                          style={{ color: genre.color, borderColor: genre.color, backgroundColor: `${genre.color}22` }}
                         >
                           + {sub}
                         </button>

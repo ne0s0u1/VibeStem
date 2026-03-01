@@ -40,10 +40,10 @@ export default function WaveformPlayer({
     if (!containerRef.current) return;
     const ws = WaveSurfer.create({
       container: containerRef.current,
-      waveColor: color + '55',
+      waveColor: '#e5e7eb',
       progressColor: color,
       height,
-      barWidth: 2,
+      barWidth: 3,
       barGap: 1,
       barRadius: 2,
       cursorWidth: 0,

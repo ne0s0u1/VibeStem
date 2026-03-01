@@ -10,6 +10,7 @@ import SeparatePage from './pages/SeparatePage';
 import ComparePage from './pages/ComparePage';
 import HistoryPage from './pages/HistoryPage';
 import AudioToolsPage from './pages/AudioToolsPage';
+import AdminPage from './pages/AdminPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="history" element={<HistoryPage />} />
         <Route path="tools" element={<AudioToolsPage />} />
       </Route>
+      <Route path="/admin" element={<AdminPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
